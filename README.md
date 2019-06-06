@@ -73,3 +73,34 @@ https://github.com/alicewish/Lofter2Hexo
 支援群912760241，可以找我问相关。
 
 最后吼一句，女孩子们去学编程吧，我们能写得出美好得多的东西，即使是笨拙的。
+
+【Lofter2Hexo 1.2版更新】
+
+①lofter导出到xml方法：乐乎网页版-更多-导入导出。
+下载到的xml就是你的乐乎文章的备份。
+
+②xml文件和程序放在同一文件夹下即可，会按后缀名自动识别。
+
+③Mac系统直接运行脚本，不提供打包，因为wxPython在Mac上打包的程序不能识别当前目录具体位置，无法使用。
+
+④提供四种迁出类型：
+Hexo（http://hexo.io）
+Hugo（http://gohugo.io）
+Jekyll（https://jekyllrb.com）
+Gridea（https://gridea.dev）
+其中Gridea是软件，Jekyll不需要安装环境也可以，Hugo需按说明安装一个对应软件且速度很快，Hexo稍麻烦但对应中文教程很多。
+
+⑤GitHub项目地址：
+https://github.com/alicewish/Lofter2Hexo
+
+⑥主程序是`wxPython-Lofter2Hexo.py`，其打包版为`wxPython-Lofter2Hexo.exe`，运行效果是一样的。
+这个程序的效果是把xml转换为对应的markdown文件。
+
+⑦`wxPython-Lofter2Hexo-图片下载器.py`是配套图片下载器，不提供打包版，因为打包不成功。
+原理是使用Selenium控制Chrome，使用脚本控制键盘按`ctrl`+`s`和`enter`，需保持被控制的Chrome在前台。
+
+⑧下载完图片以后上传到GitHub，同时保证本地有对应图片库，再次运行主程序，如果在本地GitHub库找到对应图片即假设对应GitHub网址也有图片，将乐乎图片地址替换为对应新图床并生成markdown。
+
+⑨`Lofter2Hexo.py`是早期的原型脚本，会Python且不需要图形界面的可以自己修改成需要的。
+
+⑩支援群`912760241`，可以找我问相关。

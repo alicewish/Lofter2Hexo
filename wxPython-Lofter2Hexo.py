@@ -74,7 +74,7 @@ def list2str(some_list):
 
 
 def format_hugo_title(title):
-    if "'" in title or "#" in title or "@" in title or "[" in title or "]" in title or "+" in title or "!" in title or ":" in title:  # or "：" in title or "（" in title or "）" in title
+    if "'" in title or "#" in title or "@" in title or "[" in title or "]" in title or "+" in title or "!" in title or ":" in title or title.isdigit():  # or "：" in title or "（" in title or "）" in title
         title_info = '"' + title + '"'
     else:
         title_info = title
@@ -113,70 +113,46 @@ def int2time(timestamp, formatter='%Y-%m-%d %H:%M:%S'):
     return time_str
 
 
-def head_matter_hexo(title, publishTime, modifyTime, author, categories, tags, permalink, description='', layout='post',
-                     mathjax=False):
+def get_head_matter(export_type, title, publishTime, modifyTime, author, categories, tags, permalink, description=''):
     # ================构造头部================
     content = '---'
     title_info = format_hugo_title(title)
 
     permalink_lower = permalink.lower()
     slug = '"' + permalink_lower + '"'
-    content += '\nlayout: ' + layout
+
+    if export_type == 'Hugo':
+        publishTime = publishTime.replace(' ', 'T') + '+08:00'
+        modifyTime = modifyTime.replace(' ', 'T') + '+08:00'
+
     content += '\ntitle: ' + title_info
     content += '\ndate: ' + publishTime
-    content += '\nupdated: ' + modifyTime
-    content += '\ncomments: true'
-    content += '\ncategories: ' + list2str(categories)
     content += '\ntags: ' + list2str(tags)
-    # if not title.isdigit():
-    #     content += '\npermalink: ' + slug
 
-    content += '\npermalink: ' + permalink
+    if export_type == 'Hexo':
+        content += '\ncategories: ' + list2str(categories)
+        content += '\nupdated: ' + modifyTime
+        content += '\npermalink: ' + permalink
+        content += '\nauthor: "' + author + '"'
+        content += '\ndescription: "' + description + '"'
 
-    content += '\nauthor: "' + author + '"'
-    content += '\ndescription: "' + description + '"'
-    content += '\ntoc: true'
+    elif export_type == 'Hugo':
+        content += '\ncategories: ' + list2str(categories)
+        content += '\nlastmod: ' + modifyTime
+        content += '\nslug: ' + permalink
+        content += '\nauthor: "' + author + '"'
+        content += '\ndescription: "' + description + '"'
 
-    if mathjax:
-        content += '\nmathjax: ' + str(mathjax).lower()
+    elif export_type == 'Jekyll':
+        content += '\ncategories: ' + list2str(categories)
+
+    elif export_type == 'Gridea':
+        content += '\npublished: true'
+        content += '\nhideInList: false'
+        content += '\nfeature: '
 
     content += '\n---'
     return content
-
-
-def get_https_url(jpg_url):
-    m_server = re.search(p_server, jpg_url)
-    jpg_url_https = jpg_url.replace('http://', 'https://', 1)
-    jpg_name = Path(jpg_url).name
-
-    if m_server and 'netease.com' in jpg_url:
-        server = m_server.group(1)
-        # jpg_url = 'http://' + server + '.nosdn.127.net/img/' + jpg_name
-        jpg_url_https = 'https://' + server + '.nosdn.127.net/img/' + jpg_name
-
-    # ================图床迁移-GitHub================
-    down_jpg_name = jpg_name
-    if m_server and not Path(jpg_url).stem.isdigit():
-        down_jpg_name = 'img_' + jpg_name
-
-    GitHub = Path('你的GitHub文件夹路径')
-    owner = '你的GitHub账号名'
-    repo_name = '你的存放图片的GitHub库名称'
-    jpg_dir = GitHub / repo_name
-    jpg_path = jpg_dir / down_jpg_name
-
-    if jpg_path.exists():
-        jpg_url_https = 'https://' + str(gh_prefix / owner / repo_name / 'master' / jpg_name)
-
-    return jpg_url_https
-
-
-def markdown_pic(match):
-    jpg_url = match.group(1)
-    jpg_url = jpg_url.split('?')[0]
-    jpg_url_https = get_https_url(jpg_url)
-    string = '\n![](' + jpg_url_https + ')\n'
-    return string
 
 
 def get_comments(post, content, id2name_dict):
@@ -261,11 +237,30 @@ class HelloFrame(wx.Frame):
 
         self.pnl = wx.Panel(self)
 
+        self.export_type = 'Hexo'
+        self.display_comments = True  # 是否在博文中显示历史评论
+
+        self.GitHubPathStr = '你的GitHub主文件夹路径'
+        self.owner = '你的GitHub账号名'
+        self.repo_name = '你存放图片的GitHub库名称'
+
+        self.ratio = 3
+
         # ================框架================
         self.button1 = wx.Button(self.pnl, wx.ID_ANY, '执行任务')
 
+        self.st11 = wx.StaticText(self.pnl, label='GitHub主文件夹：')
+        self.tc11 = wx.TextCtrl(self.pnl, wx.ID_ANY, value=self.GitHubPathStr)
+
+        self.st12 = wx.StaticText(self.pnl, label='GitHub账号名：')
+        self.tc12 = wx.TextCtrl(self.pnl, wx.ID_ANY, value=self.owner)
+
+        self.st13 = wx.StaticText(self.pnl, label='GitHub库名称：')
+        self.tc13 = wx.TextCtrl(self.pnl, wx.ID_ANY, value=self.repo_name)
+
         self.st0 = wx.StaticText(self.pnl, label='当前文件夹：')
-        line=str(__file__)+'|'+str(current_dir)+'|'+str(dirpath)
+        # line = str(__file__) + '|' + str(current_dir) + '|' + str(dirpath)
+        line = str(current_dir)
         self.tc0 = wx.TextCtrl(self.pnl, wx.ID_ANY, value=line, style=wx.TE_READONLY)
 
         self.st1 = wx.StaticText(self.pnl, label='读取自：')
@@ -284,6 +279,13 @@ class HelloFrame(wx.Frame):
         # self.tc5 = wx.TextCtrl(self.pnl, wx.ID_ANY, style=wx.TE_READONLY)
         self.gauge = wx.Gauge(self.pnl, range=100, )  # ,  size=(250, -1)
 
+        self.cb = wx.CheckBox(self.pnl, label='在输出文件中包含评论')
+        self.cb.SetValue(self.display_comments)
+
+        self.sampleList = ['Hexo', 'Hugo', 'Jekyll', 'Gridea']
+        self.rbox = wx.RadioBox(self.pnl, -1, "迁移到", (0, 0), wx.DefaultSize,
+                                self.sampleList, 4, wx.RA_SPECIFY_COLS)
+
         # ================尺寸器================
         # self.sBox = wx.BoxSizer()  # 水平尺寸器，不带参数则为默认的水平尺寸器
 
@@ -293,63 +295,108 @@ class HelloFrame(wx.Frame):
 
         self.vBox.Add(self.button1, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
 
-        self.vBox.Add(self.st0, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
-        self.vBox.Add(self.tc0, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.vBox.Add(self.rbox, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
 
-        self.vBox.Add(self.st1, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
-        self.vBox.Add(self.tc1, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.vBox.Add(self.cb, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
 
-        self.vBox.Add(self.st2, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
-        self.vBox.Add(self.tc2, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox11 = wx.BoxSizer()  # 水平尺寸器，不带参数则为默认的水平尺寸器
+        self.sBox11.Add(self.st11, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox11.Add(self.tc11, proportion=self.ratio, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.vBox.Add(self.sBox11, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
 
-        self.vBox.Add(self.st3, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
-        self.vBox.Add(self.tc3, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox12 = wx.BoxSizer()  # 水平尺寸器，不带参数则为默认的水平尺寸器
+        self.sBox12.Add(self.st12, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox12.Add(self.tc12, proportion=self.ratio, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.vBox.Add(self.sBox12, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
 
-        self.vBox.Add(self.st4, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
-        self.vBox.Add(self.tc4, proportion=4, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox13 = wx.BoxSizer()  # 水平尺寸器，不带参数则为默认的水平尺寸器
+        self.sBox13.Add(self.st13, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox13.Add(self.tc13, proportion=self.ratio, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.vBox.Add(self.sBox13, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+
+        # self.vBox.Add(self.st0, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        # self.vBox.Add(self.tc0, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+
+        self.sBox0 = wx.BoxSizer()  # 水平尺寸器，不带参数则为默认的水平尺寸器
+        self.sBox0.Add(self.st0, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox0.Add(self.tc0, proportion=self.ratio, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.vBox.Add(self.sBox0, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+
+        # self.vBox.Add(self.st1, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        # self.vBox.Add(self.tc1, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+
+        self.sBox1 = wx.BoxSizer()  # 水平尺寸器，不带参数则为默认的水平尺寸器
+        self.sBox1.Add(self.st1, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox1.Add(self.tc1, proportion=self.ratio, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.vBox.Add(self.sBox1, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+
+        # self.vBox.Add(self.st2, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        # self.vBox.Add(self.tc2, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+
+        self.sBox2 = wx.BoxSizer()  # 水平尺寸器，不带参数则为默认的水平尺寸器
+        self.sBox2.Add(self.st2, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox2.Add(self.tc2, proportion=self.ratio, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.vBox.Add(self.sBox2, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+
+        # self.vBox.Add(self.st3, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        # self.vBox.Add(self.tc3, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+
+        self.sBox3 = wx.BoxSizer()  # 水平尺寸器，不带参数则为默认的水平尺寸器
+        self.sBox3.Add(self.st3, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox3.Add(self.tc3, proportion=self.ratio, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.vBox.Add(self.sBox3, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+
+        # self.vBox.Add(self.st4, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        # self.vBox.Add(self.tc4, proportion=self.ratio, flag=wx.EXPAND | wx.ALL, border=pad)
+
+        self.sBox4 = wx.BoxSizer()  # 水平尺寸器，不带参数则为默认的水平尺寸器
+        self.sBox4.Add(self.st4, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox4.Add(self.tc4, proportion=self.ratio, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.vBox.Add(self.sBox4, proportion=self.ratio, flag=wx.EXPAND | wx.ALL, border=pad)
 
         # self.vBox.Add((0, 30))
 
-        self.vBox.Add(self.st_progress, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox5 = wx.BoxSizer()  # 水平尺寸器，不带参数则为默认的水平尺寸器
+        self.sBox5.Add(self.st_progress, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.sBox5.Add(self.gauge, proportion=self.ratio, flag=wx.EXPAND | wx.ALL, border=pad)
+        self.vBox.Add(self.sBox5, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
 
-        # self.sBox.Add(self.st_progress, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
-        # self.sBox.Add(self.tc5, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
-
-        # self.vBox.Add(self.sBox, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
-
-        self.vBox.Add(self.gauge, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        # self.vBox.Add(self.st_progress, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
+        # self.vBox.Add(self.gauge, proportion=1, flag=wx.EXPAND | wx.ALL, border=pad)
 
         # 设置主尺寸
         self.pnl.SetSizer(self.vBox)  # 因为sBox被嵌套在vBox上，所以以vBox为主尺寸
 
         # ================绑定================
-        self.button1.Bind(wx.EVT_BUTTON, self.onButton)
+        self.button1.Bind(wx.EVT_BUTTON, self.onStartButton)
+        self.rbox.Bind(wx.EVT_RADIOBOX, self.onRadioBox)
+        self.cb.Bind(wx.EVT_CHECKBOX, self.onCheck)
 
         # ================状态栏================
         self.CreateStatusBar()
         self.SetStatusText('准备就绪')
 
         # ================菜单栏================
-        fileMenu = wx.Menu()  # 文件菜单
+        self.fileMenu = wx.Menu()  # 文件菜单
 
-        helloItem = fileMenu.Append(-1, '你好\tCtrl-H', '程序帮助')
-        fileMenu.AppendSeparator()
-        exitItem = fileMenu.Append(wx.ID_EXIT, '退出\tCtrl-Q', '退出程序')
+        self.helloItem = self.fileMenu.Append(-1, '你好\tCtrl-H', '程序帮助')
+        self.fileMenu.AppendSeparator()
+        self.exitItem = self.fileMenu.Append(wx.ID_EXIT, '退出\tCtrl-Q', '退出程序')
 
-        helpMenu = wx.Menu()  # 帮助菜单
+        self.helpMenu = wx.Menu()  # 帮助菜单
 
-        aboutItem = helpMenu.Append(wx.ID_ABOUT, '关于\tCtrl-G', '关于程序')
+        self.aboutItem = self.helpMenu.Append(wx.ID_ABOUT, '关于\tCtrl-G', '关于程序')
 
-        menuBar = wx.MenuBar()  # 菜单栏
-        menuBar.Append(fileMenu, '文件')
-        menuBar.Append(helpMenu, '其他')
+        self.menuBar = wx.MenuBar()  # 菜单栏
+        self.menuBar.Append(self.fileMenu, '文件')
+        self.menuBar.Append(self.helpMenu, '其他')
 
-        self.SetMenuBar(menuBar)
+        self.SetMenuBar(self.menuBar)
 
         # ================绑定================
-        self.Bind(wx.EVT_MENU, self.OnHello, helloItem)
-        self.Bind(wx.EVT_MENU, self.OnExit, exitItem)
-        self.Bind(wx.EVT_MENU, self.OnAbout, aboutItem)
+        self.Bind(wx.EVT_MENU, self.OnHello, self.helloItem)
+        self.Bind(wx.EVT_MENU, self.OnExit, self.exitItem)
+        self.Bind(wx.EVT_MENU, self.OnAbout, self.aboutItem)
 
         # # ================工具栏================
         # self.toolbar = self.CreateToolBar()
@@ -392,40 +439,60 @@ class HelloFrame(wx.Frame):
         #
         # self.toolbar.Realize()  # 准备显示
 
-    def generate(self, xml_text, id2name_dict, author, md_dir, display_comments):
+    def get_https_url(self, jpg_url):
+        m_server = re.search(p_server, jpg_url)
+        jpg_url_https = jpg_url.replace('http://', 'https://', 1)
+        jpg_name = Path(jpg_url).name
+
+        if m_server and 'netease.com' in jpg_url:
+            server = m_server.group(1)
+            # jpg_url = 'http://' + server + '.nosdn.127.net/img/' + jpg_name
+            jpg_url_https = 'https://' + server + '.nosdn.127.net/img/' + jpg_name
+
+        # ================图床迁移-GitHub================
+        down_jpg_name = jpg_name
+        if m_server and not Path(jpg_url).stem.isdigit():
+            down_jpg_name = 'img_' + jpg_name
+            # print(down_jpg_name)
+
+        self.GitHub = Path(self.GitHubPathStr)
+        self.jpg_dir = self.GitHub / self.repo_name
+        jpg_path = self.jpg_dir / down_jpg_name
+        # print(jpg_path)
+
+        if jpg_path.exists():
+            jpg_url_https = 'https://' + str(gh_prefix / self.owner / self.repo_name / 'master' / down_jpg_name)
+
+        return jpg_url_https
+
+    def markdown_pic(self, match):
+        jpg_url = match.group(1)
+        jpg_url = jpg_url.split('?')[0]
+        jpg_url_https = self.get_https_url(jpg_url)
+        string = '\n![](' + jpg_url_https + ')\n'
+        return string
+
+    def generate(self, xml_text, id2name_dict, author, md_dir, export_type, display_comments):
         doc = xmltodict.parse(xml_text)
         posts = doc['lofterBlogExport']['PostItem']
         posts.reverse()
 
         for i in range(len(posts)):
             post = posts[i]
-            title = post['title']
+            raw_title = post['title']
+            if raw_title:
+                title = raw_title
+            else:
+                title = str(i + 1)
 
             publishTime = post['publishTime']
             modifyTime = publishTime
             if 'modifyTime' in post:
                 modifyTime = post['modifyTime']
 
+            publishDate = int2time(publishTime, formatter='%Y-%m-%d')
             publishTime = int2time(publishTime)
             modifyTime = int2time(modifyTime)
-
-            # if not title:
-            #     # title = str(i + 1)
-            #     title = str(i + 1).zfill(len(str(len(posts)))) + ' ' + publishTime.replace(':', '-')
-            # else:
-            #     title = str(i + 1).zfill(len(str(len(posts)))) + ' ' + title
-
-            num_prefix = str(i + 1).zfill(len(str(len(posts)))) + ' '
-
-            if title:
-                md_file_name = num_prefix + safe(title) + '.md'
-            else:
-                md_file_name = num_prefix + publishTime.replace(':', '-') + '.md'
-
-            if not title:
-                title = str(i + 1)
-
-            md_file_path = md_dir / md_file_name
 
             tag = ''
             if 'tag' in post:
@@ -437,7 +504,8 @@ class HelloFrame(wx.Frame):
             categories = [post_type]
             tags = tag.split(',')
 
-            head_matter = head_matter_hexo(title, publishTime, modifyTime, author, categories, tags, permalink)
+            head_matter = get_head_matter(export_type, title, publishTime, modifyTime, author, categories, tags,
+                                          permalink)
 
             caption = ''
             if 'caption' in post:
@@ -453,7 +521,8 @@ class HelloFrame(wx.Frame):
                 content = ''
                 if 'content' in post:
                     content = post['content']
-                content = re.sub(p_img, markdown_pic, content)
+                content = re.sub(p_img, self.markdown_pic, content)
+
             elif post_type == 'Photo':
                 photoLinks = ''
                 if 'photoLinks' in post:
@@ -471,10 +540,10 @@ class HelloFrame(wx.Frame):
                         jpg_url = photoLink['orign']
                     else:
                         jpg_url = ''
-                        print(photoLink)
+                        # print(photoLink)
 
                     if jpg_url != '':
-                        jpg_url_https = get_https_url(jpg_url)
+                        jpg_url_https = self.get_https_url(jpg_url)
                         content += '\n\n![](' + jpg_url_https + ')'
 
             elif post_type == 'Video':
@@ -498,6 +567,21 @@ class HelloFrame(wx.Frame):
                 content = get_comments(post, content, id2name_dict)
 
             text = head_matter + '\n\n' + content
+
+            num_prefix = str(i + 1).zfill(len(str(len(posts)))) + ' '
+
+            if export_type == 'Jekyll':
+                md_file_stem = publishDate + '-' + safe(title)
+            elif export_type == 'Gridea':
+                md_file_stem = safe(permalink)
+            else:  # if export_type in ['Hexo','Hugo']:
+                if raw_title:
+                    md_file_stem = num_prefix + safe(raw_title)
+                else:
+                    md_file_stem = num_prefix + publishTime.replace(':', '-')
+
+            md_file_path = md_dir / (md_file_stem + '.md')
+
             write_text(md_file_path, text)
 
             # self.show_label_str(self.tc3, str(md_file_path))
@@ -508,7 +592,7 @@ class HelloFrame(wx.Frame):
             gau = 100 * (i + 1) / len(posts)
             wx.CallAfter(self.gauge.SetValue, gau)
 
-    def process_xmls(self, xmls, event_obj):
+    def process_xmls(self, xmls, export_type, display_comments, event_obj):
         wx.CallAfter(event_obj.Disable)
         start_time = time.time()  # 初始时间戳
 
@@ -525,9 +609,7 @@ class HelloFrame(wx.Frame):
             if m_lofter:
                 author = m_lofter.group(1)
 
-            display_comments = True  # 是否在博文中显示历史评论
-
-            md_dir_name = 'markdown-' + author
+            md_dir_name = 'markdown-' + export_type + '-' + author
             md_dir = current_dir / md_dir_name
             make_dir(md_dir)
 
@@ -535,7 +617,7 @@ class HelloFrame(wx.Frame):
             self.show_label_str(self.tc2, str(md_dir))
 
             id2name_dict = get_id2name_dict(xml_text)
-            self.generate(xml_text, id2name_dict, author, md_dir, display_comments)
+            self.generate(xml_text, id2name_dict, author, md_dir, export_type, display_comments)
 
             # gau = 100 * (x + 1) / len(xmls)
             # wx.CallAfter(self.gauge.SetValue, gau)
@@ -547,9 +629,14 @@ class HelloFrame(wx.Frame):
 
         wx.CallAfter(event_obj.Enable)
 
-    def onButton(self, event):
+    def onStartButton(self, event):
         event_obj = event.GetEventObject()
-        self.thread_it(self.process_xmls, xmls, event_obj)
+
+        self.GitHubPathStr = self.tc11.GetValue()
+        self.owner = self.tc12.GetValue()
+        self.repo_name = self.tc13.GetValue()
+
+        self.thread_it(self.process_xmls, xmls, self.export_type, self.display_comments, event_obj)
         # event.GetEventObject().Enable()
 
     def OnExit(self, event):
@@ -558,27 +645,35 @@ class HelloFrame(wx.Frame):
     def OnHello(self, event):
         wx.MessageBox('来自 wxPython', '你好')
 
-    def onSave(self, event):
-        wx.MessageBox('保存自 wxPython')
-
-    def onPrint(self, event):
-        wx.MessageBox('打印自 wxPython')
-
-    def onDelete(self, event):
-        wx.MessageBox('删除自 wxPython')
-
-    def onUndo(self, event):
-        wx.MessageBox('撤销自 wxPython')
-
-    def onRedo(self, event):
-        wx.MessageBox('重做自 wxPython')
+    # def onSave(self, event):
+    #     wx.MessageBox('保存自 wxPython')
+    #
+    # def onPrint(self, event):
+    #     wx.MessageBox('打印自 wxPython')
+    #
+    # def onDelete(self, event):
+    #     wx.MessageBox('删除自 wxPython')
+    #
+    # def onUndo(self, event):
+    #     wx.MessageBox('撤销自 wxPython')
+    #
+    # def onRedo(self, event):
+    #     wx.MessageBox('重做自 wxPython')
 
     def OnAbout(self, event):
         wx.MessageBox(message=about_me,
                       caption='关于' + app_name,
                       style=wx.OK | wx.ICON_INFORMATION)
 
-    def show_label_str(self, bar, label_str, append=True):
+    def onRadioBox(self, event):
+        self.export_type = self.rbox.GetStringSelection()
+
+    def onCheck(self, event):
+        sender = event.GetEventObject()
+        isChecked = sender.GetValue()
+        self.display_comments = isChecked
+
+    def show_label_str(self, bar, label_str):
         # print(label_str)
 
         wx.CallAfter(bar.Clear)
@@ -606,11 +701,11 @@ if __name__ == '__main__':
     xmls = get_di_xml(current_dir)
     xmls = [x for x in xmls if x.stem.startswith('LOFTER-')]
 
-    app_name = 'Lofter2Hexo v1.1 by 墨问非名'
+    app_name = 'Lofter2Hexo v1.2 by 墨问非名'
     about_me = '这是将Lofter导出的xml转换成给静态博客使用的markdown的软件。'
 
     ratioX = 0.5
-    ratioY = 0.6
+    ratioY = 0.7
 
     pad = 5
 

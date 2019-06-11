@@ -1,6 +1,6 @@
 # Lofter2Hexo
 
-【Lofter迁移指南】
+## 【Lofter迁移指南】
 ！！！恳请扩散！！！
 
 首先务必保存好导出的xml，切勿遗失，也别删除。
@@ -74,7 +74,7 @@ https://github.com/alicewish/Lofter2Hexo
 
 最后吼一句，女孩子们去学编程吧，我们能写得出美好得多的东西，即使是笨拙的。
 
-【Lofter2Hexo 1.2版更新】
+## 【Lofter2Hexo 1.2版更新】
 
 ①lofter导出到xml方法：乐乎网页版-更多-导入导出。
 下载到的xml就是你的乐乎文章的备份。
@@ -104,3 +104,27 @@ https://github.com/alicewish/Lofter2Hexo
 ⑨`Lofter2Hexo.py`是早期的原型脚本，会Python且不需要图形界面的可以自己修改成需要的。
 
 ⑩支援群`912760241`，可以找我问相关。
+
+## 【Lofter2Hexo 1.3版更新】
+
+【Lofter迁移到Wordpress】
+
+①主程序为wxPython-Lofter2Hexo.exe，下载地址 https://github.com/alicewish/Lofter2Hexo/raw/master/wxPython-Lofter2Hexo.exe
+
+②lofter导出xml的方法：【乐乎网页版】-【更多】-【导入导出】。 下载到的xml就是你的乐乎文章的备份。
+
+③lofter的xml文件和程序放在同一文件夹下即可，会按后缀名自动识别。
+
+④程序提供五种迁移类型：
+Hexo（http://hexo.io）
+Hugo（http://gohugo.io）
+Jekyll（https://jekyllrb.com
+Gridea（https://gridea.dev）
+Wordpress（https://wordpress.com/） 
+选择最后一种，将生成适用于Wordpress的xml。
+
+⑤登陆Wordpress，选择【我的站点】-【工具】-【导入】，上传刚才转换后的适用于Wordpress的xml。
+
+⑥等待日志导入完成。如果觉得有用，可以给我的项目 https://github.com/alicewish/Lofter2Hexo 加个star。
+
+⑦支援群【912760241】，可以找我问相关。

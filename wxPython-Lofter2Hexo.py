@@ -792,8 +792,11 @@ class HelloFrame(wx.Frame):
                 author = m_lofter.group(1)
 
             md_dir_name = 'markdown-' + export_type + '-' + author
-            md_dir = current_dir / md_dir_name
-            if export_type != 'Wordpress':
+            
+            if export_type == 'Wordpress':
+                md_dir = current_dir
+            else:
+                md_dir = current_dir / md_dir_name
                 make_dir(md_dir)
 
             output_xml_name = export_type + '-' + author + '.xml'

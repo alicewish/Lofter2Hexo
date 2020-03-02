@@ -7,6 +7,7 @@ import urllib.parse
 from collections import OrderedDict
 from datetime import datetime
 from pathlib import Path
+from xml.sax.saxutils import escape
 
 import wx
 import xmltodict
@@ -338,11 +339,11 @@ def get_item_str(i, title, publishTime, modifyTime, author, categories, tags, pe
     post_id = 2 * i + 1
     post_date = publishTime
     post_date_gmt = publishTime
-    item_str += '\n<title>' + title + '</title>'
+    item_str += '\n<title>' + escape(title) + '</title>'
     item_str += '\n<link>' + link + '</link>'
     item_str += '\n<pubDate>' + pubDate + '</pubDate>'
     item_str += '\n<dc:creator>' + author + '</dc:creator>'
-    item_str += '\n<guid isPermaLink="false">https://lolirabbit.wordpress.com/?p=' + str(post_id) + '</dc:guid>'
+    item_str += '\n<guid isPermaLink="false">https://lolirabbit.wordpress.com/?p=' + str(post_id) + '</guid>'
     item_str += '\n<description>' + description + '</description>'
     item_str += '\n<content:encoded><![CDATA[' + html_content + ']]></content:encoded>'
     item_str += '\n<excerpt:encoded><![CDATA[' + excerpt + ']]></excerpt:encoded>'
@@ -628,6 +629,10 @@ class HelloFrame(wx.Frame):
         for i in range(len(posts)):
             post = posts[i]
             raw_title = post['title']
+
+            if isinstance(raw_title, list):
+                raw_title = raw_title[0]
+
             if raw_title:
                 title = raw_title
             else:
@@ -666,10 +671,21 @@ class HelloFrame(wx.Frame):
             html_full_content = raw_content
             md_content = raw_content
 
+            produce = True
+
             if post_type == 'Text':
                 if 'content' in post:
                     raw_content = post['content']
                 md_content = re.sub(p_img, self.markdown_pic, raw_content)
+
+            elif post_type == 'Long':
+                if 'content' in post:
+                    raw_content = post['content']
+                md_content = re.sub(p_img, self.markdown_pic, raw_content)
+
+            elif post_type == 'Ask':
+                produce = False
+
 
             elif post_type == 'Photo':
                 photoLinks = ''
@@ -695,10 +711,13 @@ class HelloFrame(wx.Frame):
 
             elif post_type == 'Video':
                 originUrl = embed['originUrl']
-                md_content = caption
+
+                if isinstance(caption, str):
+                    md_content = caption
+
                 md_content += '\n\n[' + originUrl + '](' + originUrl + ')'
 
-            else:  # type == 'Music'
+            elif post_type == 'Music':
                 listenUrl = embed['listenUrl']
 
                 song_name = ''
@@ -707,8 +726,13 @@ class HelloFrame(wx.Frame):
 
                 song_name = song_name.replace('%20', ' ')
 
-                md_content = caption
+                if isinstance(caption, str):
+                    md_content = caption
+
                 md_content += '\n\n[' + song_name + '](' + listenUrl + ')'
+
+            else:
+                produce = False
 
             # html_content = markdown2.markdown(md_content)
 
@@ -736,6 +760,9 @@ class HelloFrame(wx.Frame):
             elif export_type == 'Gridea':
                 md_file_stem = safe(permalink)
             else:  # if export_type in ['Hexo','Hugo']:
+
+
+
                 if raw_title:
                     md_file_stem = num_prefix + safe(raw_title)
                 else:
@@ -748,15 +775,16 @@ class HelloFrame(wx.Frame):
 
             text = head_matter + '\n\n' + md_full_content
 
-            if generate_md:
-                write_text(md_file_path, text)
+            if produce:
+                if generate_md:
+                    write_text(md_file_path, text)
 
-            if export_type == 'Wordpress':
-                # html_full_content = markdown2.markdown(md_content)
-                item_str = get_item_str(i, title, publishTime, modifyTime, author, categories, tags, permalink,
-                                        html_full_content)
-                # print(item_str)
-                output_xml += item_str
+                if export_type == 'Wordpress':
+                    # html_full_content = markdown2.markdown(md_content)
+                    item_str = get_item_str(i, title, publishTime, modifyTime, author, categories, tags, permalink,
+                                            html_full_content)
+                    # print(item_str)
+                    output_xml += item_str
 
             # self.show_label_str(self.tc3, str(md_file_path))
 
@@ -792,7 +820,7 @@ class HelloFrame(wx.Frame):
                 author = m_lofter.group(1)
 
             md_dir_name = 'markdown-' + export_type + '-' + author
-            
+
             if export_type == 'Wordpress':
                 md_dir = current_dir
             else:
@@ -890,7 +918,7 @@ if __name__ == '__main__':
     xmls = get_di_xml(current_dir)
     xmls = [x for x in xmls if x.stem.startswith('LOFTER-')]
 
-    app_name = 'Lofter2Hexo v1.3 by 墨问非名'
+    app_name = 'Lofter2Hexo v1.4 by 墨问非名'
     about_me = '这是将Lofter导出的xml转换成给静态博客使用的markdown的软件。'
 
     ratioX = 0.5

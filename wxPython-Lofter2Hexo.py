@@ -311,6 +311,10 @@ def get_comments(post, id2name_dict):
 def get_id2name_dict(doc):
     id2name_dict = {}
     posts = doc['lofterBlogExport']['PostItem']
+
+    if not isinstance(posts, list):
+        posts = [posts]
+
     posts.reverse()
     for i in range(len(posts)):
         post = posts[i]
@@ -584,6 +588,10 @@ class HelloFrame(wx.Frame):
     def generate(self, doc, id2name_dict, author, md_dir, output_xml_path, output_txt_path, export_type,
                  display_comments):
         posts = doc['lofterBlogExport']['PostItem']
+
+        if not isinstance(posts, list):
+            posts = [posts]
+
         # posts.reverse()
 
         output_xml = header + channel_header
@@ -892,7 +900,7 @@ if __name__ == '__main__':
     xmls = get_di_xml(current_dir)
     xmls = [x for x in xmls if x.stem.startswith('LOFTER-')]
 
-    app_name = 'Lofter2Hexo v2.0 by 墨问非名'
+    app_name = 'Lofter2Hexo v2.1 by 墨问非名'
     about_me = '这是将Lofter导出的xml转换成给静态博客使用的markdown的软件。'
 
     ratioX = 0.5

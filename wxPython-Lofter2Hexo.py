@@ -17,6 +17,8 @@ p_server = re.compile(r'(imglf\d?)', re.I)
 
 p_img = re.compile(r'<img src="([^"]+?)"([^>]*)>', re.I)
 
+p_ext_img = re.compile(r'<img src="([^"]+?)"[^>]*>', re.I)
+
 gh_prefix = Path(r'raw.githubusercontent.com')
 
 # LOFTER-墨问非名-2019.03.29.xml
@@ -120,7 +122,7 @@ sample_item_footer = '''
 </wp:postmeta>
 </item>
 '''
-wordpress_prefix = 'https://lolirabbit.wordpress.com/'
+wordpress_prefix = 'https://samplewordpressblog.wordpress.com/'
 
 
 def get_di_files_w_suffix(rootdir, suffixes):
@@ -546,47 +548,6 @@ class HelloFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.OnExit, self.exitItem)
         self.Bind(wx.EVT_MENU, self.OnAbout, self.aboutItem)
 
-        # # ================工具栏================
-        # self.toolbar = self.CreateToolBar()
-        #
-        # save_ico = wx.ArtProvider.GetBitmap(wx.ART_FILE_SAVE, wx.ART_TOOLBAR, icon_size)
-        # self.saveTool = self.toolbar.AddTool(wx.ID_ANY, '保存', save_ico, '保存')
-        #
-        # self.toolbar.AddSeparator()
-        #
-        # print_ico = wx.ArtProvider.GetBitmap(wx.ART_PRINT, wx.ART_TOOLBAR, icon_size)
-        # self.printTool = self.toolbar.AddTool(wx.ID_ANY, '打印', print_ico, '打印')
-        #
-        # delete_ico = wx.ArtProvider.GetBitmap(wx.ART_DELETE, wx.ART_TOOLBAR, icon_size)
-        # self.deleteTool = self.toolbar.AddTool(wx.ID_ANY, '删除', delete_ico, '删除')
-        #
-        # self.toolbar.AddSeparator()
-        #
-        # previous_ico = wx.ArtProvider.GetBitmap(wx.ART_GOTO_FIRST, wx.ART_TOOLBAR, icon_size)
-        # self.previousTool = self.toolbar.AddTool(wx.ID_ANY, '向前', previous_ico, '向前')
-        #
-        # next_ico = wx.ArtProvider.GetBitmap(wx.ART_GOTO_LAST, wx.ART_TOOLBAR, icon_size)
-        # self.nextTool = self.toolbar.AddTool(wx.ID_ANY, '向后', next_ico, '向后')
-        #
-        # self.toolbar.AddSeparator()
-        #
-        # undo_ico = wx.ArtProvider.GetBitmap(wx.ART_UNDO, wx.ART_TOOLBAR, icon_size)
-        # self.undoTool = self.toolbar.AddTool(wx.ID_UNDO, '撤销', undo_ico, '撤销')
-        # self.toolbar.EnableTool(wx.ID_UNDO, False)
-        #
-        # redo_ico = wx.ArtProvider.GetBitmap(wx.ART_REDO, wx.ART_TOOLBAR, icon_size)
-        # self.redoTool = self.toolbar.AddTool(wx.ID_REDO, '重做', redo_ico, '重做')
-        # self.toolbar.EnableTool(wx.ID_REDO, False)
-        #
-        # # ================绑定================
-        # self.Bind(wx.EVT_MENU, self.onSave, self.saveTool)
-        # self.Bind(wx.EVT_MENU, self.onPrint, self.printTool)
-        # self.Bind(wx.EVT_MENU, self.onDelete, self.deleteTool)
-        # self.Bind(wx.EVT_TOOL, self.onUndo, self.undoTool)
-        # self.Bind(wx.EVT_TOOL, self.onRedo, self.redoTool)
-        #
-        # self.toolbar.Realize()  # 准备显示
-
     def get_https_url(self, jpg_url):
         m_server = re.search(p_server, jpg_url)
         jpg_url_https = jpg_url.replace('http://', 'https://', 1)
@@ -620,17 +581,21 @@ class HelloFrame(wx.Frame):
         string = '\n![](' + jpg_url_https + ')\n'
         return string
 
-    def generate(self, doc, id2name_dict, author, md_dir, output_xml_path, export_type, display_comments):
+    def generate(self, doc, id2name_dict, author, md_dir, output_xml_path, output_txt_path, export_type,
+                 display_comments):
         posts = doc['lofterBlogExport']['PostItem']
         # posts.reverse()
 
         output_xml = header + channel_header
 
+        all_pic_urls = []
+
         for i in range(len(posts)):
             post = posts[i]
             raw_title = post['title']
 
-            if isinstance(raw_title, list):
+            # ================标题================
+            if isinstance(raw_title, list):  # 长文章
                 raw_title = raw_title[0]
 
             if raw_title:
@@ -638,6 +603,7 @@ class HelloFrame(wx.Frame):
             else:
                 title = str(i + 1)
 
+            # ================时间================
             publishTime = post['publishTime']
             modifyTime = publishTime
             if 'modifyTime' in post:
@@ -647,6 +613,7 @@ class HelloFrame(wx.Frame):
             publishTime = int2time(publishTime)
             modifyTime = int2time(modifyTime)
 
+            # ================元数据================
             tag = ''
             if 'tag' in post:
                 tag = post['tag']
@@ -671,22 +638,29 @@ class HelloFrame(wx.Frame):
             html_full_content = raw_content
             md_content = raw_content
 
-            produce = True
+            post_pic_urls = []
 
+            produce = True
+            # ================文字================
             if post_type == 'Text':
                 if 'content' in post:
                     raw_content = post['content']
                 md_content = re.sub(p_img, self.markdown_pic, raw_content)
+                post_pic_urls = p_ext_img.findall(raw_content)
+                # print(post_pic_urls)
 
+            # ================长文章================
             elif post_type == 'Long':
                 if 'content' in post:
                     raw_content = post['content']
                 md_content = re.sub(p_img, self.markdown_pic, raw_content)
+                post_pic_urls = p_ext_img.findall(raw_content)
+                # print(post_pic_urls)
 
+            # ================问答================
             elif post_type == 'Ask':
                 produce = False
-
-
+            # ================图片================
             elif post_type == 'Photo':
                 photoLinks = ''
                 if 'photoLinks' in post:
@@ -704,11 +678,14 @@ class HelloFrame(wx.Frame):
                     else:
                         jpg_url = ''
                         # print(photoLink)
-
                     if jpg_url != '':
                         jpg_url_https = self.get_https_url(jpg_url)
                         md_content += '\n\n![](' + jpg_url_https + ')'
+                        # print(jpg_url_https)
+                        post_pic_urls.append(jpg_url_https)
+                        # print(post_pic_urls)
 
+            # ================视频================
             elif post_type == 'Video':
                 originUrl = embed['originUrl']
 
@@ -716,7 +693,7 @@ class HelloFrame(wx.Frame):
                     md_content = caption
 
                 md_content += '\n\n[' + originUrl + '](' + originUrl + ')'
-
+            # ================音乐================
             elif post_type == 'Music':
                 listenUrl = embed['listenUrl']
 
@@ -730,15 +707,18 @@ class HelloFrame(wx.Frame):
                     md_content = caption
 
                 md_content += '\n\n[' + song_name + '](' + listenUrl + ')'
-
+            # ================如有例外================
             else:
                 produce = False
 
             # html_content = markdown2.markdown(md_content)
+            if post_pic_urls:
+                all_pic_urls.extend(post_pic_urls)
+                # print(post_pic_urls)
 
             html_content = md_content
-            html_content = re.sub('!\[(.*)\]\((.+)\)', r'<img src="\2" alt="\1" />', html_content)
-            html_content = re.sub('\[(.*)\]\((.+)\)', r'<a href="\2">\1</a>', html_content)
+            html_content = re.sub('!\[(.*)\]\((.+)\)', r'<img src="\2" alt="\1" />', html_content)  # 图片
+            html_content = re.sub('\[(.*)\]\((.+)\)', r'<a href="\2">\1</a>', html_content)  # 链接
 
             html_content = html_content.strip()
 
@@ -760,9 +740,6 @@ class HelloFrame(wx.Frame):
             elif export_type == 'Gridea':
                 md_file_stem = safe(permalink)
             else:  # if export_type in ['Hexo','Hugo']:
-
-
-
                 if raw_title:
                     md_file_stem = num_prefix + safe(raw_title)
                 else:
@@ -798,6 +775,12 @@ class HelloFrame(wx.Frame):
         if export_type == 'Wordpress':
             write_text(output_xml_path, output_xml)
 
+        all_pic_urls = deduce_list(all_pic_urls)
+        all_pic_urls = [x.split('?')[0] for x in all_pic_urls]
+        all_pic_urls = [x for x in all_pic_urls if 'raw.githubusercontent.com' not in x]
+        output_pictxt = '\r\n'.join(all_pic_urls)
+        write_text(output_txt_path, output_pictxt)
+
         return output_xml
 
     def process_xmls(self, xmls, export_type, display_comments, event_obj):
@@ -810,6 +793,8 @@ class HelloFrame(wx.Frame):
             # xml_text = open(xml_file_path).read()
             with open(xml_file_path, mode="r", encoding="utf-8") as fp:
                 xml_text = fp.read()
+
+            # 处理特殊字符
             xml_text = re.sub(u"[\x00-\x08\x0b-\x0c\x0e-\x1f]+", u"", xml_text)
 
             doc = xmltodict.parse(xml_text)
@@ -830,11 +815,15 @@ class HelloFrame(wx.Frame):
             output_xml_name = export_type + '-' + author + '.xml'
             output_xml_path = current_dir / output_xml_name
 
+            output_txt_name = 'IDM-pictures-' + author + '.txt'
+            output_txt_path = current_dir / output_txt_name
+
             self.show_label_str(self.tc1, str(xml_file_path))
             self.show_label_str(self.tc2, str(md_dir))
 
             id2name_dict = get_id2name_dict(doc)
-            self.generate(doc, id2name_dict, author, md_dir, output_xml_path, export_type, display_comments)
+            self.generate(doc, id2name_dict, author, md_dir, output_xml_path, output_txt_path, export_type,
+                          display_comments)
 
             # gau = 100 * (x + 1) / len(xmls)
             # wx.CallAfter(self.gauge.SetValue, gau)
@@ -861,21 +850,6 @@ class HelloFrame(wx.Frame):
 
     def OnHello(self, event):
         wx.MessageBox('来自 wxPython', '你好')
-
-    # def onSave(self, event):
-    #     wx.MessageBox('保存自 wxPython')
-    #
-    # def onPrint(self, event):
-    #     wx.MessageBox('打印自 wxPython')
-    #
-    # def onDelete(self, event):
-    #     wx.MessageBox('删除自 wxPython')
-    #
-    # def onUndo(self, event):
-    #     wx.MessageBox('撤销自 wxPython')
-    #
-    # def onRedo(self, event):
-    #     wx.MessageBox('重做自 wxPython')
 
     def OnAbout(self, event):
         wx.MessageBox(message=about_me,
@@ -918,7 +892,7 @@ if __name__ == '__main__':
     xmls = get_di_xml(current_dir)
     xmls = [x for x in xmls if x.stem.startswith('LOFTER-')]
 
-    app_name = 'Lofter2Hexo v1.4 by 墨问非名'
+    app_name = 'Lofter2Hexo v2.0 by 墨问非名'
     about_me = '这是将Lofter导出的xml转换成给静态博客使用的markdown的软件。'
 
     ratioX = 0.5

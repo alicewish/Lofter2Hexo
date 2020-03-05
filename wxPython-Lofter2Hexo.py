@@ -12,6 +12,7 @@ from xml.sax.saxutils import escape
 import wx
 import xmltodict
 from markdownify import markdownify as md
+from pathvalidate import sanitize_filename
 
 p_server = re.compile(r'(imglf\d?)', re.I)
 
@@ -19,7 +20,7 @@ p_img = re.compile(r'<img src="([^"]+?)"([^>]*)>', re.I)
 
 p_ext_img = re.compile(r'<img src="([^"]+?)"[^>]*>', re.I)
 
-gh_prefix = Path(r'raw.githubusercontent.com')
+gh_prefix = 'raw.githubusercontent.com'
 
 # LOFTER-墨问非名-2019.03.29.xml
 p_lofter = re.compile(r'^LOFTER-(.*)-(\d{4}\.\d{2}\.\d{2})')
@@ -186,13 +187,14 @@ def format_hugo_title(title):
 
 
 def safe(title):
-    keys = '<>'
-    for key in keys:
-        title = title.replace(key, ' ')
-    title = title.replace(':', '：')
-    title = title.replace('/', '／')
-    title = title.replace('\\', '＼')
-    return title
+    safe_title = title.replace(':', '：')
+    safe_title = safe_title.replace('!', '！')
+    safe_title = safe_title.replace("'", "-")
+    # safe_title = title.replace("'", "’")
+    safe_title = safe_title.replace('/', '／')
+    safe_title = safe_title.replace('\\', '＼')
+    safe_title = sanitize_filename(safe_title)
+    return safe_title
 
 
 # ================写入文件================
@@ -574,7 +576,8 @@ class HelloFrame(wx.Frame):
         # print(jpg_path)
 
         if jpg_path.exists():
-            jpg_url_https = 'https://' + str(gh_prefix / self.owner / self.repo_name / 'master' / down_jpg_name)
+            url_segments = [gh_prefix, self.owner, self.repo_name, 'master', down_jpg_name]
+            jpg_url_https = 'https://' + '/'.join(url_segments)
 
         return jpg_url_https
 
@@ -900,7 +903,7 @@ if __name__ == '__main__':
     xmls = get_di_xml(current_dir)
     xmls = [x for x in xmls if x.stem.startswith('LOFTER-')]
 
-    app_name = 'Lofter2Hexo v2.1 by 墨问非名'
+    app_name = 'Lofter2Hexo v2.27 by 墨问非名'
     about_me = '这是将Lofter导出的xml转换成给静态博客使用的markdown的软件。'
 
     ratioX = 0.5

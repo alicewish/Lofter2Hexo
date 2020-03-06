@@ -654,7 +654,7 @@ class HelloFrame(wx.Frame):
             produce = True
             # ================文字================
             if post_type == 'Text':
-                if 'content' in post:
+                if 'content' in post and post['content']:
                     raw_content = post['content']
                 md_content = re.sub(p_img, self.markdown_pic, raw_content)
                 post_pic_urls = p_ext_img.findall(raw_content)
@@ -662,7 +662,7 @@ class HelloFrame(wx.Frame):
 
             # ================长文章================
             elif post_type == 'Long':
-                if 'content' in post:
+                if 'content' in post and post['content']:
                     raw_content = post['content']
                 md_content = re.sub(p_img, self.markdown_pic, raw_content)
                 post_pic_urls = p_ext_img.findall(raw_content)
@@ -903,7 +903,7 @@ if __name__ == '__main__':
     xmls = get_di_xml(current_dir)
     xmls = [x for x in xmls if x.stem.startswith('LOFTER-')]
 
-    app_name = 'Lofter2Hexo v2.27 by 墨问非名'
+    app_name = 'Lofter2Hexo v2.28 by 墨问非名'
     about_me = '这是将Lofter导出的xml转换成给静态博客使用的markdown的软件。'
 
     ratioX = 0.5

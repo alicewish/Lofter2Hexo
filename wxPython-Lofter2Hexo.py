@@ -698,26 +698,34 @@ class HelloFrame(wx.Frame):
 
             # ================视频================
             elif post_type == 'Video':
-                originUrl = embed['originUrl']
+                originUrl = ''
+                if 'originUrl' in embed:
+                    originUrl = embed['originUrl']
 
                 if isinstance(caption, str):
                     md_content = caption
 
-                md_content += '\n\n[' + originUrl + '](' + originUrl + ')'
+                if originUrl != '':
+                    md_content += '\n\n[' + originUrl + '](' + originUrl + ')'
             # ================音乐================
             elif post_type == 'Music':
-                listenUrl = embed['listenUrl']
+                listenUrl = ''
+                if 'listenUrl' in embed:
+                    listenUrl = embed['listenUrl']
 
                 song_name = ''
                 if 'song_name' in embed:
                     song_name = embed['song_name']
-
                 song_name = song_name.replace('%20', ' ')
 
                 if isinstance(caption, str):
                     md_content = caption
 
-                md_content += '\n\n[' + song_name + '](' + listenUrl + ')'
+                if song_name != '' and listenUrl != '':
+                    md_content += '\n\n[' + song_name + '](' + listenUrl + ')'
+                elif song_name != '':
+                    md_content += '\n\n【' + song_name + '】'
+
             # ================如有例外================
             else:
                 produce = False
@@ -903,7 +911,7 @@ if __name__ == '__main__':
     xmls = get_di_xml(current_dir)
     xmls = [x for x in xmls if x.stem.startswith('LOFTER-')]
 
-    app_name = 'Lofter2Hexo v2.28 by 墨问非名'
+    app_name = 'Lofter2Hexo v2.3 by 墨问非名'
     about_me = '这是将Lofter导出的xml转换成给静态博客使用的markdown的软件。'
 
     ratioX = 0.5

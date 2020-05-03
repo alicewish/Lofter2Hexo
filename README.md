@@ -128,3 +128,8 @@ Wordpress（https://wordpress.com/）
 ⑥等待日志导入完成。如果觉得有用，可以给我的项目 https://github.com/alicewish/Lofter2Hexo 加个star。
 
 ⑦支援群【912760241】，可以找我问相关。
+
+## 【Lofter2Hexo 4.47版更新】
+
+图形界面改用PyQt5重写，修正了一些bug。
+

@@ -133,3 +133,7 @@ Wordpress（https://wordpress.com/）
 
 图形界面改用PyQt5重写，修正了一些bug。
 
+## 【Lofter2Hexo 5.09版更新】
+
+修正了一个影响图床迁移的bug。
+

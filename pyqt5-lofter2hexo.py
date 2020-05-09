@@ -570,14 +570,17 @@ class MyWindow(QMainWindow):
 
     def onStartButton(self):
         # ================确认变量================
-        self.GitHubPathStr = self.label1.text()
-        self.owner = self.label2.text()
-        self.repo_name = self.label3.text()
+        self.GitHubPathStr = self.qle1.text()
+        self.owner = self.qle2.text()
+        self.repo_name = self.qle3.text()
         self.export_type = self.btngroup.checkedButton().text()
         self.display_comments = self.cb1.isChecked()  # 是否在博文中显示历史评论
         self.force_replace_url = self.cb2.isChecked()  # 是否强制转换图片网址
         self.start_time = time.time()  # 初始时间戳
         self.log_text = ''
+
+        infos = [self.GitHubPathStr, self.owner, self.repo_name, self.export_type, self.display_comments,
+                 self.force_replace_url]
         # ================禁止使用按钮================
         self.button.setEnabled(False)
         self.cb1.setEnabled(False)
@@ -587,6 +590,14 @@ class MyWindow(QMainWindow):
         self.rbtn3.setEnabled(False)
         self.rbtn4.setEnabled(False)
         self.rbtn5.setEnabled(False)
+
+        for info in infos:
+            log_line = str(info)
+            self.qle7.setText(log_line)
+            self.log_text += log_line + '\n'
+            self.textEdit.setText(self.log_text)
+            self.textEdit.moveCursor(QTextCursor.End)
+
         self.process_xmls()
 
         # ================允许使用按钮================
@@ -908,7 +919,7 @@ if __name__ == '__main__':
 
     dirpath = os.getcwd()
 
-    app_name = 'Lofter2Hexo v4.27 by 墨问非名'
+    app_name = 'Lofter2Hexo v5.09 by 墨问非名'
     about_me = '这是将Lofter导出的xml转换成给静态博客使用的markdown的软件。'
 
     app = QApplication(sys.argv)
